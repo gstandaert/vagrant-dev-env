@@ -1,0 +1,49 @@
+{
+    "variables": {
+	"my_iso_url" : "http://centos.mirror.nucleus.be/6.6/isos/x86_64/CentOS-6.6-x86_64-minimal.iso",
+	"my_iso_cs" : "5458f357e8a55e3a866dd856896c7e0ac88e7f9220a3dd74c58a3b0acede8e4d",
+	"my_iso_cst" : "sha256"
+    },
+    
+    "builders" : [
+        {
+            "type" : "virtualbox-iso",
+            "guest_os_type" : "RedHat_64",
+            "iso_url" : "{{user `my_iso_url`}}",
+            "iso_checksum" : "{{user `my_iso_cs`}}",
+            "iso_checksum_type" : "{{user `my_iso_cst`}}",
+            "ssh_username" : "root",
+            "ssh_password" : "vagrant",
+            "http_directory" : "./kickstart",
+            "boot_command" : [
+                "<esc>",
+                "<wait>linux ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter>"
+            ],
+            "shutdown_command" : "shutdown -h now",
+	    "guest_additions_mode" : "upload"
+        }
+    ],
+
+    "provisioners" : [
+	{
+	    "type" : "shell",
+	    "script" : "provisioners/packer/vbox-additions"
+	},
+        {
+            "type" : "shell",
+            "script" : "provisioners/packer/vagrant"
+        },
+        {
+            "type" : "shell",
+            "script" : "provisioners/packer/cleanup"
+        }
+    ],
+
+    "post-processors": [
+	{
+	    "type": "vagrant",
+	    "output": "CentOS6.box"
+	}
+    ]
+    
+}

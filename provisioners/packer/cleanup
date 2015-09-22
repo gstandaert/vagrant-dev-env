@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Clean up the host for use as an appliance. 
+
+# Stop log and cron service
+service rsyslog stop
+service crond stop
+
+# Remove SSH host keys
+rm -f /etc/ssh/ssh_host_*
+
+# Clean the network interface configuration
+sed -i -e '/^HWADDR/d' -e '/^UUID/d' /etc/sysconfig/network-scripts/ifcfg-eth0
+rm /etc/udev/rules.d/70-persistent-net.rules
+
+# Remove log files
+rm -f /tmp/yum.log
+find /var/log -type f | while read file ; do cat /dev/null > "${file}" ; done
+rm -f /tmp/*
+
+# Clean up root directory
+find /root/ -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+find /root/ -type f -exec rm -f {} \;
+history -c

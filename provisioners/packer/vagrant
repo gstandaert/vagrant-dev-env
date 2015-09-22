@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# User vagrant is added by kickstart. This script only adds the sudo
+# config and the insecure keys
+
+cat > /etc/sudoers.d/vagrant <<__EOF__
+Defaults:vagrant !requiretty
+vagrant ALL=(ALL) NOPASSWD: ALL
+__EOF__
+
+chmod 0440 /etc/sudoers.d/vagrant
+
+install -d -o vagrant -g vagrant -m 0700 /home/vagrant/.ssh
+
+cat << __EOF__ >>/home/vagrant/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDhmAFqYdvEQoNRK5Z7RvWuekoxXfdRz+Dvima9zf9es97KscpH1KsHfzYW2uHIFpPzil/zkNUONp2XfRR9diFlzSw2AT/PDozADEL4bEeuKDyX4kG17wIgAeRof+EVeXnBoDwoME5UgNCz7w7jU8hNUdYMQMuizcsV9jhazH0iTFrdKgI+JhalJOanEJAQFedPvvsBrNJccAHCUfDN1SFKSPqqt5hFqvhU7+IbAhm7FSfa5O4APMBLhlicqdRf3vzXEreAUXwpc9hs3b7is4CJGU29xy7+0bvrcCZIhWOppNwCS+We9EibLYPzvVQQNX6rjc0VdHaxoo11uarC+jL CentOS6
+__EOF__
+
+wget --no-check-certificate -q -O - \
+     'https://github.com/mitchellh/vagrant/raw/master/keys/vagrant.pub' \
+     2>/dev/null >> /home/vagrant/.ssh/authorized_keys
+
+chown vagrant:vagrant /home/vagrant/.ssh/authorized_keys
+chmod 600 /home/vagrant/.ssh/authorized_keys
