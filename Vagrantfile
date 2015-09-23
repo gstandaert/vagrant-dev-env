@@ -21,7 +21,10 @@ Vagrant.configure(2) do |config|
   end
 
   # Common provisioners
-  #config.vm.provision :shell, path: "provisioners/vagrant-setup-oracle-jdks"
+  config.vm.provision "shell" do |s|
+    s.path = "provisioners/vagrant/setup-oracle-jdks"
+    s.args = "7u80-b15 8u60-b27"
+  end
   
   # Use our custom private key to connect to the VMs
   config.ssh.private_key_path = "unsecure-ssh-keys/unsecure_key"

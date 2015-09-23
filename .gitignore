@@ -1,0 +1,5 @@
+/CentOS6.box
+/.vagrant
+/packer_cache
+/vagrant_cache/*
+!/vagrant_cache/README.txt

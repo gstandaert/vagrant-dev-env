@@ -1,0 +1,112 @@
+#!/bin/sh
+
+# This script downloads and installs Oracle JDK versions in /opt
+# according to the following directory layout:
+#
+# /opt/oracle-jdk
+#        + [major]u[update]/
+#        + [major]-latest  (symlink)
+#        + [major]-current (symlink)
+#
+# The symlinks are intended to be manipulated manually and to be used by
+# applications (e.g. JAVA_HOME=/opt/oracle-jdk/7-latest).
+
+basedir=/opt/oracle-jdk
+downdir=/vagrant/vagrant_cache/jdk
+mirror=http://download.oracle.com/otn-pub/java/jdk
+
+if [ $# -eq 0 ]
+  then
+    printf "Error: No argument supplied\n" >&2
+    printf "Expected a list of space-separated Oracle JDK versions to install\n" >&2
+    printf "Example: \"7u65-b17 8u45-b14\"\n" >&2
+    exit 1
+fi
+
+if [ ! -d "${downdir}" ] ; then
+    mkdir -p "${downdir}"
+    if [ $? -ne 0 ] ; then
+	printf "Error: Unable to create %s.\n" "${downdir}" >&2
+	exit 1
+    fi
+fi
+
+if [ ! -d "${basedir}" ] ; then
+    mkdir -p "${basedir}"
+    if [ $? -ne 0 ] ; then
+	printf "Error: Unable to create %s.\n" "${basedir}" >&2
+	exit 1
+    fi
+fi
+
+is_jdk_version_installed() {
+    if [ -d "${basedir}/${1%%-b[0-9]*}" ] ; then
+	return 0
+    else
+	return 1
+    fi
+}
+
+download_jdk() {
+    if [ ! -r "${downdir}/jdk-${1%%-b[0-9]*}-linux-x64.tar.gz" ] ; then
+	pushd "${downdir}"
+	wget --quiet --no-check-certificate --no-cookies --header \
+	     "Cookie: oraclelicense=accept-securebackup-cookie" \
+	     -O jdk-${1%%-b[0-9]*}-linux-x64.tar.gz \
+	     ${mirror}/${1}/jdk-${1%%-b[0-9]*}-linux-x64.tar.gz
+	retval=$?
+	popd
+	return ${retval}
+    fi
+    return 0
+}
+
+install_jdk() {
+    minor_version="${1%%-b[0-9]*}"
+    major_version="${1%%u[0-9]*-b[0-9]*}"
+    
+    mkdir "${basedir}/${minor_version}"
+    tar -C "${basedir}/${minor_version}" \
+	-xzf "${downdir}/jdk-${minor_version}-linux-x64.tar.gz" \
+	--strip-components 1
+    if [ $? -ne 0 ] ; then
+	return 1
+    fi
+
+    if [ ! -h "${basedir}/${major_version}-current" ] ; then
+	if [ $(ls -d ${basedir}/${major_version}* | wc -l) -eq 1 ] ; then
+	    ln -s "${basedir}/${minor_version}" \
+	       "${basedir}/${major_version}-current"
+	fi
+    fi
+
+    if [ ! -h "${basedir}/${major_version}-latest" ] ; then
+	ln -s "${basedir}/${minor_version}" "${basedir}/${major_version}-latest"
+	return 0
+    fi
+	
+    latest_inst=$(ls -d ${basedir}/${major_version}* | tail -1)
+    latest_link=$(ls -gd ${basedir}/${major_version}-latest | awk '{print $10}')
+    if [ "${latest_inst}" != "${latest_link}" ] ; then
+	printf "Info: Updating latest installed version from %s to %s.\n" \
+	       "${latest_link}" "${latest_inst}"
+	rm "${basedir}/${major_version}-latest"
+	ln -s "${latest_inst}" "${basedir}/${major_version}-latest"
+    fi
+}
+
+for version in "$@" ; do
+    if is_jdk_version_installed ${version} ; then
+	printf "Info: JDK version %s already installed.\n" "${version}"
+	continue
+    fi
+    if ! download_jdk ${version} ; then
+	printf "Error: Unable to download JDK version %s.\n" "${version}" >&2
+	continue
+    fi
+    if ! install_jdk ${version} ; then
+	printf "Error: Unable to install JDK version %s.\n" "${version}" >&2
+	continue
+    fi
+    printf "Info: JDK version %s installed.\n" "${version}"
+done
