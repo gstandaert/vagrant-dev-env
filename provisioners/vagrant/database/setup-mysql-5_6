@@ -1,0 +1,45 @@
+#!/bin/sh
+
+##########
+# CONFIG #
+##########
+
+# Set PATH
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+#############
+# PROVISION #
+#############
+
+#################
+# Install MySQL #
+#################
+
+add_mysql_yum_repo() {
+    # The default CentOs 6 repos only have MySQL 5.1 as latest version
+    # To be able to install newer version, we need to add the repo provided by MySQL
+    # This is the MySQL repo for CentOs 6.x
+    rpm -Uvh http://dev.mysql.com/get/mysql-community-release-el6-5.noarch.rpm
+}
+
+install_mysql() {
+    yum -y install yum install mysql-community-server-5.6.26
+
+    printf "Info: Configuring mysqld to start on boot...\n"
+    chkconfig mysqld on
+}
+
+start_mysql() {
+    printf "Starting MySQL...\n"
+    service mysqld start
+}
+
+configure_permissions() {
+    printf "Configuring privileges of MySQL root user\n"
+    printf "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%%' IDENTIFIED BY 'root' WITH GRANT OPTION; FLUSH PRIVILEGES;" | mysql -u root
+}
+
+add_mysql_yum_repo
+install_mysql
+start_mysql
+configure_permissions
