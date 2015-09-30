@@ -1,0 +1,78 @@
+#!/bin/sh
+
+##########
+# CONFIG #
+##########
+
+# Set PATH
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+#############
+# PROVISION #
+#############
+
+##########################
+# Install PHP and Apache #
+##########################
+
+add_webtatic_yum_repo() {
+    # The default CentOs 6 repos only have PHP 5.3.3 as latest version
+    # To be able to install PHP 5.6, we need to add a 3th party repo
+    # This is the webtatic repo for CentOs 6.x
+    rpm -Uvh https://mirror.webtatic.com/yum/el6/latest.rpm
+}
+
+install_httpd() {
+    yum -y install httpd
+}
+
+install_php() {
+    yum -y install php56w php56w-common php56w-devel php56w-gd php56w-mcrypt php56w-mssql php56w-mysql php56w-pgsql php56w-pdo php56w-pear php56w-pecl-xdebug
+}
+
+configure_httpd() {
+    printf "Info: Configuring /etc/httpd/conf/httpd.conf...\n"
+
+    # Apache HTTPD doesn't see changes to source code when this code is placed in a 
+    # VirtualBox shared folder. Disable the 'EnableSendfile' setting to make this work.
+    # More info: https://abitwiser.wordpress.com/2011/02/24/virtualbox-hates-sendfile/
+    sed -i -e 's,#EnableSendfile off,EnableSendfile off,g' /etc/httpd/conf/httpd.conf
+
+    printf "Info: Configuring httpd to start on boot...\n"
+    chkconfig httpd on
+}
+
+configure_php() {
+    printf "Info: Configuring /etc/php.ini...\n"
+    sed -i -e 's,short_open_tag = Off,short_open_tag = On,g' /etc/php.ini
+    sed -i -e 's,upload_max_filesize = 2M,upload_max_filesize = 5M,g' /etc/php.ini
+    sed -i -e 's,memory_limit = 128M,memory_limit = 192M,g' /etc/php.ini
+}
+
+configure_xdebug() {
+    printf "Info: Configuring XDebug...\n"
+    chmod +x /usr/lib64/php/modules/xdebug.so
+    
+    cat << __EOF__ >> "/etc/php.ini"
+extension_dir=/usr/lib64/php/modules/
+
+[xdebug]
+zend_extension=/usr/lib64/php/modules/xdebug.so
+xdebug.remote_enable=true
+xdebug.remote_autostart=false
+xdebug.remote_port=1337
+xdebug.remote_handler=dbgp
+xdebug.remote_connect_back=On
+xdebug.idekey=test
+xdebug.cli_color=2
+__EOF__
+}
+
+add_webtatic_yum_repo
+install_httpd
+install_php
+configure_httpd
+configure_php
+configure_xdebug
+
+service httpd start
