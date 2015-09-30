@@ -1,0 +1,19 @@
+<Directory /srv/src/personal>
+    Options Indexes FollowSymLinks Includes ExecCGI
+    AllowOverride All
+    Order Deny,Allow
+    Allow from all
+</Directory>
+
+# Use name-based virtual hosting.
+NameVirtualHost *:80
+
+<VirtualHost *:80>
+    DocumentRoot /srv/src/personal/triple-r/public
+    ServerName rrr
+
+    SetEnv APPLICATION_ENV "vagrant"
+
+    ErrorLog /var/log/httpd/rrr-error.log
+    CustomLog /var/log/httpd/rrr-access.log combined
+</VirtualHost>

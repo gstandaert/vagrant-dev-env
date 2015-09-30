@@ -57,4 +57,30 @@ Vagrant.configure(2) do |config|
 
   end
 
+  # RRR (PHP-MySQL)- 10.10.10.5
+  config.vm.define "rrr" do |cfg|
+
+    # Install MySQL
+    cfg.vm.provision :shell, path: "provisioners/vagrant/database/setup-mysql-5_6"
+
+    # Install Apache httpd, php and xdebug
+    cfg.vm.provision :shell, path: "provisioners/vagrant/php/setup-php-5_6"
+
+    cfg.vm.provision "shell" do |s|
+      s.path = "provisioners/guests/rrr/base"
+      s.args = "rrr"
+    end
+
+    # VirtualBox configuration
+    cfg.vm.provider "virtualbox" do |v|
+      v.name = "RRR - CentOS 6"
+      v.memory = 1024
+      v.cpus = 2
+    end
+
+    cfg.vm.hostname = "rrr"
+    cfg.vm.network "private_network", ip: "10.10.10.5"
+
+  end
+
 end

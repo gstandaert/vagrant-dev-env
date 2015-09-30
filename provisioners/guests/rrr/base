@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# This script executes configuration that is specific for this guest vm.
+printf "Info: Applying customizations specific to this machine...\n"
+
+guest_name=${1}
+guest_path=/vagrant/provisioners/guests/${guest_name}
+usr_cfg_file=/home/vagrant/.bashrc
+
+# Validate input params
+if [ ! $# -eq 1 ] ; then
+   printf "Error: Missing required input argument: vm_name\n" >&2
+   exit 1
+fi
+
+create_mysql_db() {
+    db_name="${1}"
+    printf "Info: Creating database %s in MySQL" "${db_name}"
+    printf "CREATE DATABASE IF NOT EXISTS ${db_name};" | mysql -u root
+}
+
+# Add aliases
+printf 'alias tapache-error="tail -f /var/log/httpd/rrr-error.log"\n' >> $usr_cfg_file
+printf 'alias tapache-access="tail -f /var/log/httpd/rrr-access.log"\n' >> $usr_cfg_file
+printf "Info: Configured aliases. Run 'alias' on the terminal to list all available aliases\n"
+
+# Reload the usr_cfg_file
+source $usr_cfg_file
+
+# Configure httpd virtual hosts
+printf "Info: Configuring httpd virtual hosts\n"
+cat "${guest_path}/httpd-vhosts" >> /etc/httpd/conf/httpd.conf
+
+# Restart httpd after adding virtual hosts
+service httpd restart
+
+# Set permission on log files (logrotate will copy these same permissions when rotating)
+chown -R apache:apache /var/log/httpd
+chmod -R 777 /var/log/httpd
+
+# MySQL - Add database
+create_mysql_db "triple_r"
+
+printf "Info: Done!\n"
